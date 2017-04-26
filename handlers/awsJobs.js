@@ -78,7 +78,13 @@ let handlers = {
         const batchJobParams = {
             jobDefinition: job.jobDefinition,
             jobName:       job.jobName,
-            parameters:    job.parameters
+            parameters:    job.parameters,
+            containerOverrides:{
+                environment: [{
+                    name: 'BIDS_SNAPSHOT_ID',
+                    value: '24fd3a7f24ce267eb488ec5afe5c98c1' || job.snapshotId
+                }]
+            }
         };
         batchJobParams.jobQueue = 'bids-queue';
 
@@ -106,6 +112,7 @@ let handlers = {
      * returns no return. Batch job start is happening after response has been send to client
      */
     startBatchJob(params, jobId) {
+        
         aws.batch.sdk.submitJob(params, (err, data) => {
             //update mongo job with aws batch job id?
             c.crn.jobs.updateOne({_id: jobId}, {
@@ -147,7 +154,7 @@ let handlers = {
                     if(analysis.status === 'SUCCEEDED' || analysis.status === 'FAILED'){
                         let params = {
                             Bucket: 'openneuro.outputs',
-                            Prefix: '24fd3a7f24ce267eb488ec5afe5c98c1'
+                            Prefix: '24fd3a7f24ce267eb488ec5afe5c98c1' || job.snapshotId
                         };
                         aws.s3.sdk.listObjectsV2(params, (err, data) => {
                             let results = [];
@@ -167,7 +174,7 @@ let handlers = {
                     }
                     res.send({
                         analysis: analysis,
-                        jobId: jobId,
+                        jobId: analysisId,
                         datasetId: job.datasetId,
                         snapshotId: job.snapshotId
                     });
